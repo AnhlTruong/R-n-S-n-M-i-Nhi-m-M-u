@@ -1,0 +1,1531 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Rắn Săn Mồi Nhiệm Màu</title> <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #1a1a1a;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            touch-action: none; /* Ngăn các hành động chạm mặc định như cuộn */
+        }
+        #gameCanvas {
+            display: block;
+            background-color: #222738; /* Nền canvas màu xanh xám đậm */
+            cursor: none; /* Ẩn con trỏ mặc định trên canvas */
+        }
+        .game-ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10; /* Đảm bảo UI nằm trên canvas */
+        }
+        .menu {
+            background-color: rgba(20, 25, 40, 0.92); /* Màu xanh đậm bán trong suốt */
+            padding: 35px 45px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 5px 30px rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .menu h1 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+            color: #58D68D; /* Màu xanh lá cây sáng cho tiêu đề */
+            text-shadow: 0 0 10px rgba(88, 214, 141, 0.5);
+        }
+        .menu input, .menu button {
+            margin: 12px 0;
+            padding: 15px 25px;
+            font-size: 1.1em;
+            border-radius: 10px;
+            border: none;
+            outline: none;
+        }
+        .menu input[type="text"] {
+            width: 85%;
+            background-color: #2c324c; /* Màu xanh đậm hơn cho trường nhập liệu */
+            color: white;
+            border: 1px solid #404866; /* Viền tinh tế */
+            box-sizing: border-box;
+        }
+        .menu input::placeholder {
+            color: #aaa;
+        }
+        .menu button {
+            background-color: #58D68D; /* Nút màu xanh lá cây */
+            color: #141928; /* Chữ màu tối trên nút */
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+        }
+        .menu button:hover {
+            background-color: #4FC080; /* Màu xanh lá cây hơi đậm hơn khi di chuột qua */
+        }
+        .menu button:active {
+            transform: translateY(1px); /* Hiệu ứng nhấp */
+        }
+        .menu button.highlighted-button {
+            background-color: #A2D2FF; 
+            color: #141928; 
+        }
+        .menu button.highlighted-button:hover {
+            background-color: #81C0EB; 
+        }
+
+        .menu p {
+            color: #bbb;
+            font-size: 0.9em;
+        }
+        #hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            background-color: rgba(20, 25, 40, 0.7);
+            padding: 12px 18px;
+            border-radius: 10px;
+            font-size: 1em;
+            z-index: 5;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        #hud p {
+            margin: 6px 0;
+        }
+        #custom-cursor {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            pointer-events: none; 
+            transform: translate(-50%, -50%); 
+            z-index: 100;
+            display: none; 
+            transition: width 0.1s, height 0.1s, background-color 0.1s;
+        }
+        #custom-cursor.boosting {
+             width: 18px;
+             height: 18px;
+             background-color: rgba(255,255,255,0.3);
+        }
+        .color-picker-container {
+            margin: 15px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .color-option {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: border-color 0.2s ease;
+        }
+        .color-option.selected {
+            border-color: white;
+            box-shadow: 0 0 8px rgba(255,255,255,0.7);
+        }
+        .difficulty-options {
+            margin: 15px 0;
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+        }
+        .difficulty-options label {
+            font-size: 1.05em;
+            cursor: pointer;
+            padding: 10px 20px;
+            border-radius: 12px;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, transform 0.1s ease;
+            border: 2px solid #404866;
+            background-color: #2c324c;
+            color: #ccc;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        .difficulty-options input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .difficulty-options input[type="radio"]:checked + label {
+            background-color: #58D68D;
+            color: #141928;
+            font-weight: bold;
+            border-color: #4FC080;
+            box-shadow: 0 0 20px rgba(88, 214, 141, 0.6);
+            transform: translateY(-2px);
+        }
+        .difficulty-options label:hover {
+            background-color: rgba(88, 214, 141, 0.2);
+            border-color: #58D68D;
+        }
+        #leaderboard {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: white;
+            background-color: rgba(20, 25, 40, 0.7);
+            padding: 12px 18px;
+            border-radius: 10px;
+            font-size: 0.95em;
+            z-index: 5;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            display: none; 
+            width: 200px; 
+        }
+        #leaderboard h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #58D68D;
+            text-align: center;
+        }
+        #leaderboard ol {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        #leaderboard li {
+            padding: 4px 0;
+            display: flex;
+            justify-content: space-between;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        #leaderboard li span:first-child { 
+            color: #ccc;
+            flex-grow: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-right: 10px;
+        }
+         #leaderboard li span:last-child { 
+            color: white;
+            font-weight: bold;
+        }
+        #leaderboard li.player-entry span:first-child,
+        #leaderboard li.player-entry span:last-child {
+            color: #58D68D;
+            font-weight: bold;
+        }
+        .music-button {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background-color: rgba(20, 25, 40, 0.8);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 1.5em;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            z-index: 15;
+        }
+        .music-button:hover {
+            background-color: rgba(30, 35, 50, 0.9);
+        }
+        .music-button:active {
+            transform: translateY(1px);
+        }
+        #gameMusicButton {
+            display: none; 
+        }
+    </style>
+</head>
+<body>
+    <div id="custom-cursor"></div>
+
+    <div id="start-menu" class="game-ui-overlay menu">
+        <h1>Rắn Săn Mồi Nhiệm Màu</h1> <input type="text" id="playerNameInput" placeholder="Nhập tên của bạn" value="Player" maxlength="20">
+        <div class="color-picker-container" id="playerColorPicker"></div>
+        <div class="difficulty-options">
+            <input type="radio" id="normalDifficulty" name="difficulty" value="normal" checked>
+            <label for="normalDifficulty">Bình thường</label>
+            <input type="radio" id="hardDifficulty" name="difficulty" value="hard">
+            <label for="hardDifficulty">Khó</label>
+        </div>
+        <button id="playButton">CHƠI NGAY</button>
+        <p>Di chuyển chuột/chạm để lái. Giữ chuột trái/chạm giữ để tăng tốc.</p>
+        <p>Điểm cao nhất: <span id="highScoreDisplay">0</span></p>
+        <button id="menuMusicButton" class="music-button">🎵</button> 
+    </div>
+
+    <div id="death-screen" class="game-ui-overlay menu" style="display: none;">
+        <h1>Bạn đã bị hạ!</h1>
+        <p>Điểm: <span id="finalScore">0</span></p>
+        <p>Điểm cao nhất: <span id="deathHighScoreDisplay">0</span></p>
+        <button id="playAgainButton">Chơi Lại</button>
+        <button id="backToMenuButton" class="highlighted-button" style="margin-top: 10px;">Quay lại Màn hình chính</button>
+    </div>
+
+    <div id="hud" style="display: none;">
+        <p>Điểm: <span id="scoreDisplay">0</span></p>
+        <p>Chiều dài: <span id="lengthDisplay">0</span></p>
+        <p>FPS: <span id="fpsDisplay">0</span></p>
+    </div>
+
+    <div id="leaderboard" style="display: none;">
+        <h3>TOP 5</h3>
+        <ol id="leaderboardList"></ol>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+    <button id="gameMusicButton" class="music-button">🎵</button> 
+    
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // UI Elements
+        const startMenu = document.getElementById('start-menu');
+        const deathScreen = document.getElementById('death-screen');
+        const hud = document.getElementById('hud');
+        const playButton = document.getElementById('playButton');
+        const playAgainButton = document.getElementById('playAgainButton');
+        const backToMenuButton = document.getElementById('backToMenuButton'); 
+        const playerNameInput = document.getElementById('playerNameInput');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const lengthDisplay = document.getElementById('lengthDisplay');
+        const finalScoreDisplay = document.getElementById('finalScore');
+        const fpsDisplay = document.getElementById('fpsDisplay');
+        const highScoreDisplay = document.getElementById('highScoreDisplay');
+        const deathHighScoreDisplay = document.getElementById('deathHighScoreDisplay');
+        const customCursor = document.getElementById('custom-cursor');
+        const leaderboardDiv = document.getElementById('leaderboard');
+        const leaderboardList = document.getElementById('leaderboardList');
+        const playerColorPicker = document.getElementById('playerColorPicker');
+        const difficultyOptions = document.querySelectorAll('input[name="difficulty"]');
+
+        // Music variables
+        const backgroundMusic = new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3');
+        backgroundMusic.loop = true;
+        backgroundMusic.volume = 0.3; 
+        let isMusicPlaying = false; 
+        const menuMusicButton = document.getElementById('menuMusicButton');
+        const gameMusicButton = document.getElementById('gameMusicButton');
+
+        // Game Settings
+        const WORLD_WIDTH = 5000;
+        const WORLD_HEIGHT = 5000;
+        const GRID_SIZE = 50;
+        const INITIAL_FOOD_COUNT = 350; 
+        const AI_SNAKE_COUNT = 25; 
+        const MAX_AI_NAME_LENGTH = 18;
+        const FOOD_RADIUS = 6;
+        const FOOD_SCORE_VALUE = 10;
+        const FOOD_VALUE_FROM_DEATH_BASE = 20;
+        const FOOD_ATTRACTION_RADIUS = 80; // NEW: Bán kính hút thức ăn
+        const FOOD_ATTRACTION_SPEED = 150; // NEW: Tốc độ thức ăn bị hút (pixels/sec)
+
+        // NEW: Food spawn limits
+        const MIN_FOOD_COUNT = 250; // Số lượng thức ăn tối thiểu trên bản đồ
+        const MAX_FOOD_COUNT = 450; // Số lượng thức ăn tối đa trên bản đồ
+        const FOOD_SPAWN_INTERVAL = 0.5; // Thời gian (giây) để kiểm tra và tạo thêm thức ăn
+        let foodSpawnTimer = 0; // Bộ đếm thời gian cho việc tạo thức ăn định kỳ
+
+
+        const PLAYER_INITIAL_LENGTH = 8;
+        const PLAYER_BASE_RADIUS = 9;
+        const PLAYER_BASE_SPEED = 140; 
+        const PLAYER_BOOST_SPEED_MULTIPLIER = 2.0;
+        const PLAYER_BOOST_DRAIN_RATE = 0.15; 
+        const PLAYER_BOOST_MIN_LENGTH = 6;
+        const PLAYER_TURN_SPEED = Math.PI * 2.2; 
+        const SEGMENT_FOLLOW_FACTOR = 0.8; 
+        const MIN_TARGET_DISTANCE_FOR_TURNING = PLAYER_BASE_RADIUS * 0.5; 
+        const FORWARD_TARGET_DISTANCE = 200; 
+
+        // Mouse/Touch state
+        let lastMouseX = -1;
+        let lastMouseY = -1;
+        let mouseStillTimer = 0;
+        const MOUSE_STILL_THRESHOLD = 0.1; 
+
+        // Game State
+        let playerSnake;
+        let foodArray = [];
+        let aiSnakes = [];
+        let camera = { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2, zoom: 1 };
+        let mouse = { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2 }; 
+        let gameState = 'menu'; 
+        let animationFrameId;
+        let lastFrameTime = 0;
+        let fps = 0;
+        let playerName = "Player";
+        let playerColor = "#58D68D"; 
+        let currentDifficulty = 'normal';
+        let highScore = parseInt(localStorage.getItem('slitherOfflineHighScoreV5')) || 0; // Updated high score key for v3.5
+
+        // Player Boost State
+        let isBoosting = false; 
+        let boostDrainTimer = 0; 
+
+        // Leaderboard Update Timer
+        let leaderboardUpdateTimer = 0;
+        const LEADERBOARD_UPDATE_INTERVAL = 5; 
+
+        // AI Update Optimization Timer
+        let distantAiUpdateTimer = 0;
+        const DISTANT_AI_UPDATE_INTERVAL = 0.2; // Update distant AI less frequently
+
+        const playerColors = [
+            "#58D68D", "#FF7E67", "#7EBDC2", "#3D5A80", "#FFCB6B", "#E07A5F",
+            "#81B29A", "#F2CC8F", "#D8A7B1", "#A2D2FF", "#BDE0FE", "#C3B4F0",
+            "#F19CBB", "#C8F7C5"
+        ];
+
+        class Vector {
+            constructor(x = 0, y = 0) { this.x = x; this.y = y; }
+            static subtract(v1, v2) { return new Vector(v1.x - v2.x, v1.y - v2.y); }
+            magnitude() { return Math.sqrt(this.x * this.x + this.y * this.y); }
+            normalize() { const mag = this.magnitude(); if (mag > 0) { this.x /= mag; this.y /= mag; } return this; }
+            scale(s) { this.x *= s; this.y *= s; return this; }
+            add(v) { this.x += v.x; this.y += v.y; return this; }
+            clone() { return new Vector(this.x, this.y); }
+            static distance(v1, v2) { return Math.sqrt(Math.pow(v1.x - v2.x, 2) + Math.pow(v1.y - v2.y, 2));}
+        }
+
+        class Snake {
+            constructor(x, y, color, name, initialLength, isPlayer = false, isAI = false) {
+                this.id = Math.random().toString(36).substr(2, 9);
+                this.name = name;
+                this.color = color;
+                this.segments = [];
+                this.baseRadius = PLAYER_BASE_RADIUS + (isPlayer ? 0 : Math.random() * 2 - 1); 
+                this.speed = PLAYER_BASE_SPEED * (isPlayer ? 1 : (0.7 + Math.random() * 0.25)); 
+                this.turnSpeed = PLAYER_TURN_SPEED * (isPlayer ? 1 : (0.6 + Math.random() * 0.3)); 
+                this.angle = Math.random() * Math.PI * 2; 
+                this.target = new Vector(x, y); 
+                this.isPlayer = isPlayer;
+                this.isAI = isAI;
+                this.isAlive = true;
+                this.score = 0;
+                this.currentSpeed = this.speed; 
+                this.isCurrentlyBoosting = false; 
+
+                // AI specific properties
+                this.aiTargetFood = null; 
+                this.aiStateTimer = 0; 
+                this.aiMode = 'patrol'; // 'patrol', 'seek_food', 'flee', 'hunt_player', 'trap_target' (NEW)
+                this.aiFleeTarget = null; 
+                this.aiAvoidVector = new Vector(0,0); 
+                this.aiTargetSnake = null; // NEW: Target for hunting or trapping
+                
+                this.aiCanBoost = false; 
+                this.aiBoostTimer = 0; 
+                this.aiBoostDuration = 0; 
+                this.aiBoostCooldown = 0; 
+                this.aiDecisionCooldown = 0; // NEW: Cooldown for major AI decisions for performance
+
+                for (let i = 0; i < initialLength; i++) {
+                    this.segments.push(new Vector(x - i * this.baseRadius * 0.5, y));
+                }
+                this.updateScore(true); 
+            }
+
+            update(deltaTime) {
+                if (!this.isAlive) return;
+
+                const head = this.segments[0];
+                this.currentSpeed = this.speed; 
+                
+                if (this.isPlayer) {
+                    if (mouseStillTimer >= MOUSE_STILL_THRESHOLD) {
+                        this.target.x = head.x + Math.cos(this.angle) * FORWARD_TARGET_DISTANCE;
+                        this.target.y = head.y + Math.sin(this.angle) * FORWARD_TARGET_DISTANCE;
+                    } else {
+                        this.target.x = mouse.x;
+                        this.target.y = mouse.y;
+                    }
+
+                    if (isBoosting && this.segments.length > PLAYER_BOOST_MIN_LENGTH) {
+                        this.currentSpeed = PLAYER_BASE_SPEED * PLAYER_BOOST_SPEED_MULTIPLIER;
+                        boostDrainTimer += deltaTime;
+                        if (boostDrainTimer >= PLAYER_BOOST_DRAIN_RATE) {
+                            boostDrainTimer = 0;
+                            if (this.segments.length > PLAYER_BOOST_MIN_LENGTH) { 
+                                this.segments.pop();
+                                this.updateScore();
+                            } else {
+                                isBoosting = false; 
+                                customCursor.classList.remove('boosting');
+                            }
+                        }
+                    } else if (isBoosting && this.segments.length <= PLAYER_BOOST_MIN_LENGTH) {
+                        isBoosting = false; 
+                        customCursor.classList.remove('boosting');
+                    }
+                } else { 
+                     // AI Update Optimization: Check if AI is far from camera view
+                    const distToCam = Vector.distance(head, camera);
+                    const viewRadius = Math.max(canvas.width, canvas.height) / (2 * camera.zoom) * 1.5; // 1.5x view radius
+
+                    if (distToCam > viewRadius) { // If AI is far
+                        this.aiDecisionCooldown -= deltaTime;
+                        if (this.aiDecisionCooldown <=0) {
+                            this.aiUpdate(deltaTime, true); // Pass 'isDistant' flag
+                            this.aiDecisionCooldown = DISTANT_AI_UPDATE_INTERVAL * (1 + Math.random()); // Stagger updates
+                        } else {
+                            // Simplified update for distant AI (movement only)
+                            this.aiMoveTowardsTarget(deltaTime);
+                        }
+                    } else {
+                         this.aiUpdate(deltaTime, false); // Full update for nearby AI
+                    }
+                }
+
+                // Common movement logic (moved to aiMoveTowardsTarget for AI, kept here for player)
+                if (this.isPlayer) {
+                    this.aiMoveTowardsTarget(deltaTime);
+                }
+
+
+                // World boundary collision and rebound for AI (simple rebound)
+                if (head.x < this.baseRadius) { head.x = this.baseRadius; if(!this.isPlayer && Vector.distance(head, this.target) > MIN_TARGET_DISTANCE_FOR_TURNING) this.angle = Math.PI - this.angle + (Math.random()-0.5)*0.2; }
+                if (head.x > WORLD_WIDTH - this.baseRadius) { head.x = WORLD_WIDTH - this.baseRadius; if(!this.isPlayer && Vector.distance(head, this.target) > MIN_TARGET_DISTANCE_FOR_TURNING) this.angle = Math.PI - this.angle+ (Math.random()-0.5)*0.2; }
+                if (head.y < this.baseRadius) { head.y = this.baseRadius; if(!this.isPlayer && Vector.distance(head, this.target) > MIN_TARGET_DISTANCE_FOR_TURNING) this.angle = -this.angle+ (Math.random()-0.5)*0.2; }
+                if (head.y > WORLD_HEIGHT - this.baseRadius) { head.y = WORLD_HEIGHT - this.baseRadius; if(!this.isPlayer && Vector.distance(head, this.target) > MIN_TARGET_DISTANCE_FOR_TURNING) this.angle = -this.angle+ (Math.random()-0.5)*0.2; }
+
+                // Update body segments to follow the head
+                for (let i = 1; i < this.segments.length; i++) {
+                    const currentSeg = this.segments[i];
+                    const prevSeg = this.segments[i - 1];
+                    const delta = Vector.subtract(prevSeg, currentSeg);
+                    const dist = delta.magnitude();
+                    const desiredDist = this.baseRadius * SEGMENT_FOLLOW_FACTOR;
+
+                    if (dist > desiredDist) {
+                        const moveAmount = (dist - desiredDist);
+                        currentSeg.add(delta.normalize().scale(moveAmount));
+                    }
+                }
+            }
+            
+            // NEW: Separated movement logic for AI reuse
+            aiMoveTowardsTarget(deltaTime) {
+                const head = this.segments[0];
+                const distanceToTarget = Vector.distance(head, this.target);
+                let newTargetAngle = this.angle;
+
+                if (distanceToTarget > MIN_TARGET_DISTANCE_FOR_TURNING) {
+                    const directionToTarget = Vector.subtract(this.target, head);
+                    newTargetAngle = Math.atan2(directionToTarget.y, directionToTarget.x);
+                }
+                
+                if (!this.isPlayer && (this.aiAvoidVector.x !== 0 || this.aiAvoidVector.y !== 0) && distanceToTarget > MIN_TARGET_DISTANCE_FOR_TURNING * 2) {
+                    const avoidanceAngle = Math.atan2(this.aiAvoidVector.y, this.aiAvoidVector.x);
+                    let currentTargetAngleComponent = new Vector(Math.cos(newTargetAngle), Math.sin(newTargetAngle));
+                    let avoidanceComponent = this.aiAvoidVector.clone().normalize().scale(0.4); 
+                    let combinedDirection = currentTargetAngleComponent.add(avoidanceComponent).normalize();
+                    newTargetAngle = Math.atan2(combinedDirection.y, combinedDirection.x);
+                }
+
+                let angleDiff = newTargetAngle - this.angle;
+                while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
+                let effectiveTurnSpeed = this.turnSpeed;
+                if (distanceToTarget < this.baseRadius * 5) { 
+                    effectiveTurnSpeed *= Math.max(0.1, distanceToTarget / (this.baseRadius * 5));
+                }
+
+                const maxTurn = effectiveTurnSpeed * deltaTime;
+                this.angle += Math.max(-maxTurn, Math.min(maxTurn, angleDiff));
+
+                const moveX = Math.cos(this.angle) * this.currentSpeed * deltaTime;
+                const moveY = Math.sin(this.angle) * this.currentSpeed * deltaTime;
+                head.x += moveX;
+                head.y += moveY;
+            }
+
+
+            aiUpdate(deltaTime, isDistant = false) { // Added isDistant flag
+                this.aiStateTimer -= deltaTime;
+                this.aiAvoidVector.x = 0; this.aiAvoidVector.y = 0; 
+                const head = this.segments[0];
+                let fleeFromSnake = null;
+                this.aiTargetSnake = null; // Reset hunt/trap target
+                this.aiCanBoost = (currentDifficulty === 'hard');
+
+                let allSnakes = [playerSnake, ...aiSnakes].filter(s => s && s.isAlive && s.id !== this.id);
+                
+                const DANGER_RADIUS = this.baseRadius * 12;
+                const AVOID_RADIUS = this.baseRadius * 5;
+                const HUNT_RADIUS = this.baseRadius * (currentDifficulty === 'hard' ? 30 : 20); // Larger hunt radius on hard
+                const TRAP_RADIUS = this.baseRadius * 15; // NEW: Radius to consider trapping
+
+                if (!isDistant) { // Only do complex sensing if not distant
+                    for (const otherSnake of allSnakes) {
+                        if (!otherSnake || !otherSnake.isAlive || otherSnake.id === this.id) continue;
+                        const distToOtherHead = Vector.distance(head, otherSnake.segments[0]);
+                        
+                        // Flee logic
+                        if (otherSnake.segments.length > this.segments.length + 5 && distToOtherHead < DANGER_RADIUS) {
+                            const headToOtherHead = Vector.subtract(otherSnake.segments[0], head);
+                            const otherSnakeDirection = new Vector(Math.cos(otherSnake.angle), Math.sin(otherSnake.angle));
+                            const dotProduct = (headToOtherHead.x * otherSnakeDirection.x + headToOtherHead.y * otherSnakeDirection.y);
+                            if(dotProduct > 0){ 
+                                fleeFromSnake = otherSnake;
+                            }
+                        }
+                        
+                        // Hunt player / Trap smaller snake logic (only on hard difficulty for more aggressive hunting/trapping)
+                        if (currentDifficulty === 'hard' && !fleeFromSnake) {
+                            if (otherSnake.isPlayer && this.segments.length > otherSnake.segments.length - 5 && distToOtherHead < HUNT_RADIUS) {
+                                this.aiTargetSnake = otherSnake; // Prioritize player
+                                this.aiMode = 'hunt_player';
+                            } else if (!this.aiTargetSnake && // If not already targeting player
+                                       !otherSnake.isPlayer && // Target other AIs
+                                       this.segments.length > otherSnake.segments.length + 8 && // Must be significantly larger to trap
+                                       distToOtherHead < TRAP_RADIUS && Math.random() < 0.3) { // Chance to trap
+                                this.aiTargetSnake = otherSnake;
+                                this.aiMode = 'trap_target';
+                            }
+                        }
+
+                        // Segment avoidance
+                        for(let k=0; k < otherSnake.segments.length; k+=3){ // Check fewer segments for performance
+                            const distToSegment = Vector.distance(head, otherSnake.segments[k]);
+                            if(distToSegment < AVOID_RADIUS){
+                                const repulsion = Vector.subtract(head, otherSnake.segments[k]).normalize();
+                                repulsion.scale( (AVOID_RADIUS - distToSegment) / AVOID_RADIUS * 0.5 );
+                                this.aiAvoidVector.add(repulsion);
+                            }
+                        }
+                    }
+                } // End of !isDistant block
+                
+                // AI Boost Decision Logic
+                if (this.aiBoostCooldown > 0) {
+                    this.aiBoostCooldown = Math.max(0, this.aiBoostCooldown - deltaTime);
+                    this.isCurrentlyBoosting = false; 
+                }
+
+                if (this.aiBoostCooldown <= 0 && !this.isCurrentlyBoosting && this.aiCanBoost && !isDistant) {
+                    let shouldBoostNow = false;
+                    let decidedBoostDuration = 0;
+
+                    if (fleeFromSnake && this.segments.length > PLAYER_BOOST_MIN_LENGTH + 5) {
+                        shouldBoostNow = true;
+                        decidedBoostDuration = 0.4 + Math.random() * 0.3; 
+                    } else if (this.aiMode === 'hunt_player' && this.aiTargetSnake && this.segments.length > PLAYER_BOOST_MIN_LENGTH + 3) {
+                        const distToTarget = Vector.distance(head, this.aiTargetSnake.segments[0]);
+                        if (distToTarget < HUNT_RADIUS / 1.2 && Math.random() < 0.20) { 
+                            shouldBoostNow = true;
+                            decidedBoostDuration = 0.5 + Math.random() * 0.4;
+                        }
+                    } else if (this.aiMode === 'trap_target' && this.aiTargetSnake && this.segments.length > PLAYER_BOOST_MIN_LENGTH + 5) {
+                         if (Math.random() < 0.15) { // Boost to close in for trapping
+                            shouldBoostNow = true;
+                            decidedBoostDuration = 0.3 + Math.random() * 0.2;
+                        }
+                    } else if (this.aiMode === 'seek_food' && this.aiTargetFood && this.segments.length > PLAYER_BOOST_MIN_LENGTH + 12) {
+                        const distToFood = Vector.distance(head, this.aiTargetFood.pos);
+                        if (distToFood > this.baseRadius * 25 && Math.random() < 0.025) { 
+                            shouldBoostNow = true;
+                            decidedBoostDuration = 0.2 + Math.random() * 0.2;
+                        }
+                    }
+
+                    if (shouldBoostNow) {
+                        this.isCurrentlyBoosting = true;
+                        this.aiBoostDuration = decidedBoostDuration;
+                    }
+                }
+
+                // AI Boost Execution
+                if (this.isCurrentlyBoosting) {
+                    this.currentSpeed = this.speed * PLAYER_BOOST_SPEED_MULTIPLIER;
+                    this.aiBoostTimer += deltaTime;
+                    this.aiBoostDuration -= deltaTime;
+
+                    if (this.aiBoostTimer >= PLAYER_BOOST_DRAIN_RATE) {
+                        this.aiBoostTimer = 0;
+                        if (this.segments.length > PLAYER_BOOST_MIN_LENGTH) {
+                            this.segments.pop();
+                            this.updateScore();
+                        } else { 
+                            this.isCurrentlyBoosting = false;
+                            this.aiBoostDuration = 0;
+                            this.aiBoostCooldown = 3.5 + Math.random() * 1.0; 
+                        }
+                    }
+                    if (this.aiBoostDuration <= 0 && this.isCurrentlyBoosting) { 
+                        this.isCurrentlyBoosting = false;
+                        this.aiBoostCooldown = 2.5 + Math.random() * 1.0; 
+                    }
+                }
+                
+                if (!this.isCurrentlyBoosting) { 
+                    this.currentSpeed = this.speed; 
+                }
+
+                // AI Target Setting Logic
+                if (fleeFromSnake) {
+                    this.aiMode = 'flee';
+                    this.target = Vector.subtract(head, fleeFromSnake.segments[0]).normalize().scale(300).add(head); 
+                    this.aiStateTimer = 0.8 + Math.random() * 0.4; 
+                } else if (this.aiMode === 'hunt_player' && this.aiTargetSnake) {
+                    // Predict player's future position slightly
+                    const predictionTime = 0.2 + Math.random() * 0.2; // Predict a short time ahead
+                    const playerHead = this.aiTargetSnake.segments[0];
+                    const playerSpeed = this.aiTargetSnake.isCurrentlyBoosting ? PLAYER_BASE_SPEED * PLAYER_BOOST_SPEED_MULTIPLIER : this.aiTargetSnake.speed;
+                    this.target.x = playerHead.x + Math.cos(this.aiTargetSnake.angle) * playerSpeed * predictionTime;
+                    this.target.y = playerHead.y + Math.sin(this.aiTargetSnake.angle) * playerSpeed * predictionTime;
+                    this.aiStateTimer = 1.5 + Math.random() * 0.8; 
+                } else if (this.aiMode === 'trap_target' && this.aiTargetSnake) {
+                    const targetHead = this.aiTargetSnake.segments[0];
+                    const vecToTarget = Vector.subtract(targetHead, head);
+                    const distToTarget = vecToTarget.magnitude();
+
+                    if (distToTarget < this.baseRadius * 3) { // If very close, try to move perpendicular to target's movement
+                        const perpendicularAngleOffset = Math.PI / 2 * (Math.random() < 0.5 ? 1 : -1); // Randomly left or right
+                        this.target.x = head.x + Math.cos(this.aiTargetSnake.angle + perpendicularAngleOffset) * 100;
+                        this.target.y = head.y + Math.sin(this.aiTargetSnake.angle + perpendicularAngleOffset) * 100;
+                    } else { // Otherwise, approach target
+                        this.target.x = targetHead.x;
+                        this.target.y = targetHead.y;
+                    }
+                    this.aiStateTimer = 1.0 + Math.random() * 0.5;
+                } else if (this.aiStateTimer <= 0 || !this.aiTargetFood || Vector.distance(head, this.aiTargetFood.pos) < this.baseRadius * 2 || isDistant) {
+                    // Find new food if current one is gone, timer expired, or AI is distant and needs a simpler target
+                    this.aiMode = 'seek_food';
+                    this.findBestFoodTarget(isDistant); 
+                    this.aiStateTimer = 1.5 + Math.random() * 1.5;
+                } else if (this.aiMode === 'seek_food' && this.aiTargetFood) {
+                    this.target.x = this.aiTargetFood.pos.x;
+                    this.target.y = this.aiTargetFood.pos.y;
+                } else if (this.aiMode === 'patrol' || (this.aiMode === 'seek_food' && !this.aiTargetFood)) { 
+                    if (this.aiStateTimer <= 0 || this.isNearWall(head, 100) ) {
+                       this.angle += (Math.random() - 0.5) * Math.PI * 0.7; 
+                       this.target.x = head.x + Math.cos(this.angle) * (150 + Math.random() * 100); 
+                       this.target.y = head.y + Math.sin(this.angle) * (150 + Math.random() * 100);
+                       this.aiStateTimer = 2.5 + Math.random() * 2;
+                    }
+                }
+                
+                // Wall avoidance for AI (adds to aiAvoidVector)
+                const wallAvoidMargin = this.baseRadius * 6;
+                if (head.x < wallAvoidMargin) this.aiAvoidVector.x += (wallAvoidMargin - head.x) * 0.05;
+                if (head.x > WORLD_WIDTH - wallAvoidMargin) this.aiAvoidVector.x -= (head.x - (WORLD_WIDTH - wallAvoidMargin)) * 0.05;
+                if (head.y < wallAvoidMargin) this.aiAvoidVector.y += (wallAvoidMargin - head.y) * 0.05;
+                if (head.y > WORLD_HEIGHT - wallAvoidMargin) this.aiAvoidVector.y -= (head.y - (WORLD_HEIGHT - wallAvoidMargin)) * 0.05;
+                
+                if(this.aiAvoidVector.magnitude() > 0.01) this.aiAvoidVector.normalize(); else {this.aiAvoidVector.x = 0; this.aiAvoidVector.y =0;}
+                
+                this.aiMoveTowardsTarget(deltaTime); // AI specific movement call
+            }
+            
+            isNearWall(head, margin) {
+                return head.x < margin || head.x > WORLD_WIDTH - margin || head.y < margin || head.y > WORLD_HEIGHT - margin;
+            }
+
+            findBestFoodTarget(isDistant = false) {
+                let closestFood = null;
+                // For distant AI, increase search radius or simplify logic
+                let minDistance = (currentDifficulty === 'hard' ? (isDistant ? 600 : 450) : (isDistant ? 500 : 350)) + this.segments.length * 1.5; 
+                const head = this.segments[0];
+                const searchLimit = isDistant ? 50 : foodArray.length; // Check fewer food items if distant
+
+                for (let i = 0; i < Math.min(searchLimit, foodArray.length); i++) {
+                    const food = foodArray[i]; // Could pick random subset if performance is an issue
+                    const dist = Vector.distance(food.pos, head);
+                    if (dist < minDistance) {
+                        const foodDir = Vector.subtract(food.pos, head).normalize();
+                        const snakeDir = new Vector(Math.cos(this.angle), Math.sin(this.angle));
+                        const dotProd = foodDir.x * snakeDir.x + foodDir.y * snakeDir.y;
+                        if (dotProd > (isDistant ? -0.5 : -0.2)) { // Wider angle for distant AI
+                            minDistance = dist;
+                            closestFood = food;
+                        }
+                    }
+                }
+                this.aiTargetFood = closestFood;
+                if (closestFood) { 
+                    this.target.x = closestFood.pos.x;
+                    this.target.y = closestFood.pos.y;
+                }
+            }
+
+            draw(ctx, camera, viewRect) { // Added viewRect for culling
+                if (!this.isAlive) return;
+                
+                ctx.save();
+                let isVisuallyBoosting = (this.isPlayer && isBoosting && this.segments.length > PLAYER_BOOST_MIN_LENGTH) || 
+                                         (!this.isPlayer && this.isCurrentlyBoosting);
+
+                if (isVisuallyBoosting) {
+                    ctx.shadowBlur = 15 + Math.sin(Date.now()/100) * 5; 
+                    ctx.shadowColor = this.color;
+                } else {
+                    ctx.shadowBlur = 0;
+                }
+
+                ctx.fillStyle = this.color;
+                ctx.strokeStyle = "rgba(0,0,0,0.3)"; 
+                ctx.lineWidth = 2 / camera.zoom;
+
+                let drawnSegments = 0; // For performance monitoring if needed
+                for (let i = this.segments.length - 1; i >= 0; i--) {
+                    const segment = this.segments[i];
+                    // Culling: Only draw segments within viewRect (with a small margin)
+                    if (segment.x + this.baseRadius > viewRect.left && segment.x - this.baseRadius < viewRect.right &&
+                        segment.y + this.baseRadius > viewRect.top && segment.y - this.baseRadius < viewRect.bottom) {
+                        ctx.beginPath();
+                        ctx.arc(segment.x, segment.y, this.baseRadius, 0, Math.PI * 2);
+                        ctx.fill();
+                        if (i > 0) ctx.stroke(); 
+                        drawnSegments++;
+                    } else if (i < this.segments.length -1 && i > 0) { 
+                        // If a segment is off-screen, but previous was on-screen, likely the snake is going off-screen
+                        // No need to check further segments if they are also likely off-screen (optimisation for long snakes)
+                        // This simple break might be too aggressive for very twisty snakes, but good for mostly straight ones.
+                        // A more robust culling would check if the *entire snake* is off-screen.
+                        // For now, we draw all segments if any part is visible.
+                    }
+                }
+                
+                ctx.shadowBlur = 0; 
+
+                const headSeg = this.segments[0];
+                // Only draw eyes and name if head is visible
+                if (headSeg.x + this.baseRadius > viewRect.left && headSeg.x - this.baseRadius < viewRect.right &&
+                    headSeg.y + this.baseRadius > viewRect.top && headSeg.y - this.baseRadius < viewRect.bottom) {
+
+                    const eyeRadius = this.baseRadius * 0.35;
+                    const eyeOffsetDist = this.baseRadius * 0.45;
+                    const eyeAngle = this.angle; 
+
+                    ctx.fillStyle = 'white';
+                    const leftEyeX = headSeg.x + Math.cos(eyeAngle + Math.PI / 2.8) * eyeOffsetDist;
+                    const leftEyeY = headSeg.y + Math.sin(eyeAngle + Math.PI / 2.8) * eyeOffsetDist;
+                    ctx.beginPath();
+                    ctx.arc(leftEyeX, leftEyeY, eyeRadius, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    const rightEyeX = headSeg.x + Math.cos(eyeAngle - Math.PI / 2.8) * eyeOffsetDist;
+                    const rightEyeY = headSeg.y + Math.sin(eyeAngle - Math.PI / 2.8) * eyeOffsetDist;
+                    ctx.beginPath();
+                    ctx.arc(rightEyeX, rightEyeY, eyeRadius, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    const pupilRadius = eyeRadius * 0.6;
+                    const pupilOffsetDist = eyeRadius * 0.2;
+                    
+                    let pupilDir = Vector.subtract(this.target, headSeg).normalize(); 
+                    if (pupilDir.magnitude() === 0) { 
+                        pupilDir = new Vector(Math.cos(this.angle), Math.sin(this.angle));
+                    }
+
+                    ctx.fillStyle = 'black';
+                    ctx.beginPath();
+                    ctx.arc(leftEyeX + pupilDir.x * pupilOffsetDist, leftEyeY + pupilDir.y * pupilOffsetDist, pupilRadius, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(rightEyeX + pupilDir.x * pupilOffsetDist, rightEyeY + pupilDir.y * pupilOffsetDist, pupilRadius, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    if (this.name) {
+                        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+                        ctx.textAlign = 'center';
+                        const fontSize = Math.max(9, 13 / camera.zoom); 
+                        ctx.font = `bold ${fontSize}px 'Segoe UI', sans-serif`;
+                        ctx.fillText(this.name, headSeg.x, headSeg.y - this.baseRadius - (7 / camera.zoom));
+                    }
+                }
+                ctx.restore();
+            }
+
+            grow(amount = 1) {
+                const tail = this.segments[this.segments.length - 1];
+                for (let i = 0; i < amount; i++) {
+                    this.segments.push(new Vector(tail.x, tail.y)); 
+                }
+                this.updateScore();
+            }
+
+            updateScore(isInitial = false) {
+                this.score = Math.max(0, (this.segments.length - PLAYER_INITIAL_LENGTH) * FOOD_SCORE_VALUE);
+            }
+
+            checkCollisionWithWall() {
+                const head = this.segments[0];
+                return head.x - this.baseRadius <= 0 || head.x + this.baseRadius >= WORLD_WIDTH ||
+                       head.y - this.baseRadius <= 0 || head.y + this.baseRadius >= WORLD_HEIGHT;
+            }
+
+            checkCollisionWithOtherSnake(otherSnake) {
+                if (!otherSnake.isAlive) return false;
+                const myHead = this.segments[0];
+                for (let i = 0; i < otherSnake.segments.length; i++) {
+                    const otherSegment = otherSnake.segments[i];
+                    if (Vector.distance(myHead, otherSegment) < (this.baseRadius + otherSnake.baseRadius) * 0.8) {
+                        // NEW: Check if it's a head-on collision with another AI and if this AI is smaller
+                        if (this.isAI && otherSnake.isAI && i === 0 && this.segments.length < otherSnake.segments.length) {
+                            // If this AI is smaller and collides head-on with a larger AI, this AI dies.
+                            // The larger AI will survive this specific head-on check (it might die if it hits the smaller AI's body later).
+                            return true; 
+                        }
+                        // If it's the player hitting an AI's head, or any head hitting a body segment
+                        if (i > 0 || (i === 0 && (this.isPlayer || !otherSnake.isAI))) {
+                             return true;
+                        }
+                    }
+                }
+                return false;
+            }
+
+            die() {
+                if (!this.isAlive) return;
+                this.isAlive = false;
+                
+                const numFoodToDrop = Math.max(5, Math.floor(this.score / FOOD_VALUE_FROM_DEATH_BASE));
+                const foodRadiusFromDeath = this.baseRadius * 0.6; 
+
+                for (let i = 0; i < numFoodToDrop; i++) {
+                    const segmentIndex = Math.floor(Math.random() * this.segments.length);
+                    const basePos = this.segments[segmentIndex];
+                    const randomOffset = (Math.random() - 0.5) * this.baseRadius * 3; 
+                    
+                    foodArray.push(new Food(
+                        basePos.x + randomOffset,
+                        basePos.y - randomOffset,
+                        this.color, 
+                        foodRadiusFromDeath
+                    ));
+                }
+            }
+        }
+
+        class Food {
+            constructor(x, y, color = null, radius = FOOD_RADIUS) {
+                this.pos = new Vector(x, y);
+                this.radius = radius;
+                this.color = color || `hsl(${Math.random() * 360}, 90%, 70%)`; 
+                this.value = 1; 
+                this.id = Math.random().toString(36).substr(2, 9); 
+                this.isAttracted = false; // NEW: For visual effect if needed
+            }
+            draw(ctx, viewRect) { // Added viewRect for culling
+                 // Culling: Only draw food within viewRect (with a small margin)
+                if (this.pos.x + this.radius < viewRect.left || this.pos.x - this.radius > viewRect.right ||
+                    this.pos.y + this.radius < viewRect.top || this.pos.y - this.radius > viewRect.bottom) {
+                    return;
+                }
+
+                ctx.beginPath();
+                ctx.arc(this.pos.x, this.pos.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                
+                if (this.isAttracted) { // Optional: visual cue for attracted food
+                    ctx.shadowBlur = 8;
+                    ctx.shadowColor = this.color;
+                }
+                ctx.fill();
+                ctx.shadowBlur = 0; // Reset shadow
+            }
+        }
+
+        function initGame() {
+            resizeCanvas(); 
+            updateHighScoreDisplays();
+            setupColorPicker();
+
+            canvas.addEventListener('mousemove', handleMouseMove);
+            canvas.addEventListener('touchmove', handleTouchMove, { passive: false }); 
+            canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+            canvas.addEventListener('touchend', handleTouchEnd); // NEW: For stopping boost on touch release
+            
+            canvas.addEventListener('mousedown', handleMouseDown);
+            window.addEventListener('mouseup', handleMouseUp); 
+
+            playButton.addEventListener('click', startGame);
+            playAgainButton.addEventListener('click', startGame);
+            backToMenuButton.addEventListener('click', showStartMenu); 
+            window.addEventListener('resize', resizeCanvas); 
+
+            menuMusicButton.addEventListener('click', toggleMusic);
+            gameMusicButton.addEventListener('click', toggleMusic);
+
+            difficultyOptions.forEach(radio => {
+                radio.addEventListener('change', (event) => {
+                    currentDifficulty = event.target.value;
+                });
+            });
+            updateMusicButtonIcons();
+        }
+
+        function setupColorPicker() {
+            playerColorPicker.innerHTML = ''; 
+            playerColors.forEach(color => {
+                const colorOption = document.createElement('div');
+                colorOption.className = 'color-option';
+                colorOption.style.backgroundColor = color;
+                colorOption.dataset.color = color;
+                colorOption.addEventListener('click', () => {
+                    document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('selected'));
+                    colorOption.classList.add('selected');
+                    playerColor = color;
+                });
+                playerColorPicker.appendChild(colorOption);
+            });
+            let defaultColorOption = document.querySelector(`.color-option[data-color="${playerColor}"]`);
+            if (!defaultColorOption && playerColorPicker.firstChild) {
+                defaultColorOption = playerColorPicker.firstChild;
+                playerColor = defaultColorOption.dataset.color;
+            }
+            if (defaultColorOption) defaultColorOption.classList.add('selected');
+        }
+        
+        function updateMusicButtonIcons() {
+            const icon = isMusicPlaying ? '🎵' : '🔇';
+            menuMusicButton.textContent = icon;
+            gameMusicButton.textContent = icon;
+        }
+
+        function toggleMusic() {
+            if (isMusicPlaying) {
+                backgroundMusic.pause();
+            } else {
+                backgroundMusic.play().catch(e => console.warn("Lỗi phát nhạc:", e)); 
+            }
+            isMusicPlaying = !isMusicPlaying; 
+            updateMusicButtonIcons();
+        }
+
+        function startGame() {
+            playerName = playerNameInput.value.trim() || "Player";
+            if (playerName.length > 20) playerName = playerName.substring(0, 20); 
+
+            playerSnake = new Snake(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, playerColor, playerName, PLAYER_INITIAL_LENGTH, true, false);
+            
+            foodArray = [];
+            // Spawn initial food up to MAX_FOOD_COUNT, or INITIAL_FOOD_COUNT if it's less
+            for (let i = 0; i < Math.min(INITIAL_FOOD_COUNT, MAX_FOOD_COUNT); i++) {
+                spawnFood();
+            }
+
+            aiSnakes = [];
+            for(let i = 0; i < AI_SNAKE_COUNT; i++) {
+                spawnAISnake();
+            }
+
+            camera.x = playerSnake.segments[0].x;
+            camera.y = playerSnake.segments[0].y;
+            camera.zoom = 1;
+            isBoosting = false; 
+            boostDrainTimer = 0;
+            leaderboardUpdateTimer = 0; 
+            distantAiUpdateTimer = 0; // Reset AI optimization timer
+            foodSpawnTimer = 0; // Reset food spawn timer
+
+            lastMouseX = -1;
+            lastMouseY = -1;
+            mouseStillTimer = 0;
+
+            startMenu.style.display = 'none';
+            deathScreen.style.display = 'none';
+            hud.style.display = 'block';
+            customCursor.style.display = 'block';
+            customCursor.classList.remove('boosting');
+            leaderboardDiv.style.display = 'block'; 
+            gameMusicButton.style.display = 'flex'; 
+            menuMusicButton.style.display = 'none'; 
+
+            if (isMusicPlaying && backgroundMusic.paused) { 
+                backgroundMusic.play().catch(e => console.warn("Lỗi phát nhạc khi bắt đầu game:", e));
+            }
+            updateMusicButtonIcons(); 
+
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+            gameState = 'playing'; 
+            lastFrameTime = performance.now(); 
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+        
+        function generateUniqueAIName() {
+            const aiNamePrefixes = ["Nhanh Nhẹn", "Tinh Ranh", "Đói Bụng", "Cổ Xưa", "Bóng Đêm", "Ma Quái", "Khổng Lồ", "Thép Gai", "Lửa", "Bão Tố", "Sấm Sét"];
+            const aiNameSuffixes = ["Kẻ Săn", "Lướt Nhẹ", "Thợ Săn", "Bóng Ma", "Quái Thú", "Mãng Xà", "Độc Xà", "Chiến Binh", "Vua", "Chúa Tể", "Kẻ Hủy Diệt"];
+            let potentialName;
+            let isUnique = false;
+            let attempts = 0;
+
+            while(!isUnique && attempts < 50) { 
+                const prefix = aiNamePrefixes[Math.floor(Math.random() * aiNamePrefixes.length)];
+                const suffix = aiNameSuffixes[Math.floor(Math.random() * aiNameSuffixes.length)];
+                potentialName = `${prefix} ${suffix}`;
+                if (potentialName.length > MAX_AI_NAME_LENGTH) {
+                    potentialName = potentialName.substring(0, MAX_AI_NAME_LENGTH);
+                }
+                isUnique = !aiSnakes.some(snake => snake.name === potentialName) && (!playerSnake || playerSnake.name !== potentialName);
+                attempts++;
+            }
+            if (!isUnique) {
+                let num = 1;
+                let baseName = potentialName.substring(0, MAX_AI_NAME_LENGTH - 3); 
+                do {
+                    potentialName = `${baseName} #${num}`;
+                    isUnique = !aiSnakes.some(snake => snake.name === potentialName) && (!playerSnake || playerSnake.name !== potentialName);
+                    num++;
+                } while (!isUnique && num < 100); 
+            }
+            return potentialName;
+        }
+
+        function spawnAISnake() {
+            const aiColors = ["#FF7E67", "#7EBDC2", "#3D5A80", "#FFCB6B", "#E07A5F", "#81B29A", "#F2CC8F", "#D8A7B1", "#A2D2FF", "#BDE0FE"];
+            const x = Math.random() * (WORLD_WIDTH - 200) + 100; 
+            const y = Math.random() * (WORLD_HEIGHT - 200) + 100;
+            const color = aiColors[Math.floor(Math.random() * aiColors.length)];
+            const name = generateUniqueAIName();
+            const length = PLAYER_INITIAL_LENGTH + Math.floor(Math.random() * 10); 
+            aiSnakes.push(new Snake(x, y, color, name, length, false, true));
+        }
+
+        function spawnFood(position = null, color = null, radius = FOOD_RADIUS) {
+            // NEW: Only spawn food if current food count is below MAX_FOOD_COUNT
+            if (foodArray.length >= MAX_FOOD_COUNT) {
+                return;
+            }
+
+            const x = position ? position.x : Math.random() * (WORLD_WIDTH - 20) + 10; 
+            const y = position ? position.y : Math.random() * (WORLD_HEIGHT - 20) + 10;
+            foodArray.push(new Food(x, y, color, radius));
+        }
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        
+        function getMouseWorldPos(eventClientX, eventClientY) {
+            const rect = canvas.getBoundingClientRect();
+            const screenX = eventClientX - rect.left;
+            const screenY = eventClientY - rect.top;
+            return {
+                x: (screenX - canvas.width / 2) / camera.zoom + camera.x,
+                y: (screenY - canvas.height / 2) / camera.zoom + camera.y
+            };
+        }
+
+        function handleMouseMove(event) {
+            const worldPos = getMouseWorldPos(event.clientX, event.clientY);
+            mouse.x = worldPos.x;
+            mouse.y = worldPos.y;
+            customCursor.style.left = event.clientX + 'px';
+            customCursor.style.top = event.clientY + 'px';
+
+            if (lastMouseX !== event.clientX || lastMouseY !== event.clientY) {
+                mouseStillTimer = 0; 
+                lastMouseX = event.clientX;
+                lastMouseY = event.clientY;
+            }
+        }
+        
+        function handleTouchStart(event) {
+            event.preventDefault(); 
+             if (event.touches.length > 0) {
+                const touch = event.touches[0];
+                const worldPos = getMouseWorldPos(touch.clientX, touch.clientY);
+                mouse.x = worldPos.x;
+                mouse.y = worldPos.y;
+                lastMouseX = touch.clientX; 
+                lastMouseY = touch.clientY;
+                mouseStillTimer = 0; 
+                if (gameState === 'playing' && playerSnake && playerSnake.isAlive) { 
+                    isBoosting = true; 
+                    customCursor.classList.add('boosting'); 
+                }
+            }
+        }
+
+        function handleTouchMove(event) {
+            event.preventDefault();
+            if (event.touches.length > 0) {
+                const touch = event.touches[0];
+                const worldPos = getMouseWorldPos(touch.clientX, touch.clientY);
+                mouse.x = worldPos.x;
+                mouse.y = worldPos.y;
+
+                if (lastMouseX !== touch.clientX || lastMouseY !== touch.clientY) {
+                    mouseStillTimer = 0; 
+                    lastMouseX = touch.clientX;
+                    lastMouseY = touch.clientY;
+                }
+            }
+        }
+        // NEW: Handle touch end to stop boosting
+        function handleTouchEnd(event) {
+            // event.preventDefault(); // Not always needed for touchend, but can prevent unwanted clicks
+            if (isBoosting) {
+                isBoosting = false;
+                customCursor.classList.remove('boosting');
+                boostDrainTimer = 0;
+            }
+        }
+        
+        function handleMouseDown(event) {
+            if (event.button === 0 && gameState === 'playing' && playerSnake && playerSnake.isAlive) {
+                isBoosting = true;
+                customCursor.classList.add('boosting');
+            }
+        }
+
+        function handleMouseUp(event) {
+            if (event.button === 0 && gameState === 'playing') { 
+                isBoosting = false;
+                customCursor.classList.remove('boosting');
+                boostDrainTimer = 0; 
+            }
+        }
+
+        function updateCamera() {
+            if (playerSnake && playerSnake.isAlive) {
+                const head = playerSnake.segments[0];
+                camera.x += (head.x - camera.x) * 0.08; 
+                camera.y += (head.y - camera.y) * 0.08;
+                const MAX_ZOOM_OUT = 0.55; // Slightly more zoom out possible
+                const MIN_ZOOM_IN = 1.3;   // Prevent zooming in too much
+                let desiredZoom = 1.25 - (playerSnake.segments.length / 450); 
+                desiredZoom = Math.max(MAX_ZOOM_OUT, Math.min(MIN_ZOOM_IN, desiredZoom));
+                camera.zoom += (desiredZoom - camera.zoom) * 0.05; 
+            }
+        }
+        
+        // NEW: Function to handle food attraction and consumption
+        function handleFoodAttractionAndConsumption(snake, deltaTime) {
+            if (!snake || !snake.isAlive) return;
+            const head = snake.segments[0];
+
+            for (let i = foodArray.length - 1; i >= 0; i--) {
+                const food = foodArray[i];
+                const distToFood = Vector.distance(head, food.pos);
+
+                // Consumption
+                if (distToFood < snake.baseRadius + food.radius - 2) {
+                    snake.grow(food.value);
+                    foodArray.splice(i, 1);
+                    // No direct spawnFood() call here. Food will be managed by update()
+                    if (snake.isAI) snake.aiTargetFood = null; // AI needs to find new food
+                    continue; // Food consumed, skip attraction logic for this food
+                }
+
+                // Attraction
+                if (distToFood < FOOD_ATTRACTION_RADIUS + snake.baseRadius) { // Attraction radius relative to snake size
+                    food.isAttracted = true;
+                    const directionToHead = Vector.subtract(head, food.pos).normalize();
+                    food.pos.add(directionToHead.scale(FOOD_ATTRACTION_SPEED * deltaTime));
+                } else {
+                    food.isAttracted = false;
+                }
+            }
+        }
+
+
+        function update(deltaTime) {
+            mouseStillTimer += deltaTime;
+
+            if(playerSnake && playerSnake.isAlive) playerSnake.update(deltaTime);
+            aiSnakes.forEach(ai => { if(ai.isAlive) ai.update(deltaTime); });
+
+            // NEW: Handle food attraction and consumption for player and AIs
+            if(playerSnake && playerSnake.isAlive) handleFoodAttractionAndConsumption(playerSnake, deltaTime);
+            aiSnakes.forEach(ai => {
+                if(ai.isAlive) handleFoodAttractionAndConsumption(ai, deltaTime);
+            });
+
+            // NEW: Manage food spawning to maintain limits
+            foodSpawnTimer += deltaTime;
+            if (foodSpawnTimer >= FOOD_SPAWN_INTERVAL) {
+                if (foodArray.length < MIN_FOOD_COUNT) {
+                    // Spawn multiple food items to reach MIN_FOOD_COUNT quickly
+                    for (let i = 0; i < (MIN_FOOD_COUNT - foodArray.length); i++) {
+                        spawnFood();
+                    }
+                } else if (foodArray.length < MAX_FOOD_COUNT) {
+                    // Spawn one food item at a time if between min and max
+                    spawnFood();
+                }
+                foodSpawnTimer = 0; // Reset timer
+            }
+
+
+            // Collision detection and game logic
+            if (playerSnake && playerSnake.isAlive) {
+                // Player hits wall
+                if (playerSnake.checkCollisionWithWall()) { playerSnake.die(); gameOver(); return; }
+
+                // Player head collides with AI body or head
+                for (const ai of aiSnakes) {
+                    if (ai.isAlive && playerSnake.checkCollisionWithOtherSnake(ai)) {
+                        playerSnake.die(); gameOver(); return;
+                    }
+                }
+            }
+            
+            // AI logic (collisions with other snakes)
+            aiSnakes.forEach((ai) => {
+                if(!ai.isAlive) return;
+
+                // AI head collides with other AI body/head
+                aiSnakes.forEach(otherAi => {
+                    if (ai.id !== otherAi.id && ai.isAlive && otherAi.isAlive) {
+                        if (ai.checkCollisionWithOtherSnake(otherAi)) {
+                             // If AI hits another AI's head and current AI is smaller or equal, current AI dies
+                            const distToOtherHead = Vector.distance(ai.segments[0], otherAi.segments[0]);
+                            const combinedRadii = (ai.baseRadius + otherAi.baseRadius) * 0.7; // slightly smaller for head-on
+                            if (distToOtherHead < combinedRadii && ai.segments.length <= otherAi.segments.length) {
+                                ai.die();
+                            } else if (distToOtherHead >= combinedRadii) { // Hit body
+                                ai.die();
+                            }
+                            // Larger AI survives head-on, or if it hit a body segment.
+                        }
+                    }
+                });
+                // AI head collides with Player body
+                if (playerSnake && playerSnake.isAlive) {
+                    if (ai.checkCollisionWithOtherSnake(playerSnake)) {
+                        ai.die();
+                    }
+                }
+            });
+            
+            const livingAICount = aiSnakes.filter(s => s.isAlive).length;
+            if (livingAICount < AI_SNAKE_COUNT) {
+                aiSnakes = aiSnakes.filter(s => s.isAlive); 
+                for(let i = 0; i < (AI_SNAKE_COUNT - aiSnakes.length); i++){ 
+                    spawnAISnake();
+                }
+            }
+
+            updateCamera();
+            updateHUD();
+
+            leaderboardUpdateTimer += deltaTime;
+            if (leaderboardUpdateTimer >= LEADERBOARD_UPDATE_INTERVAL) {
+                const allLivingSnakesForLeaderboard = [playerSnake, ...aiSnakes].filter(s => s && s.isAlive);
+                updateLeaderboard(allLivingSnakesForLeaderboard);
+                leaderboardUpdateTimer = 0; 
+            }
+        }
+
+        function drawGrid(viewRect) { // Added viewRect for culling
+            ctx.strokeStyle = "rgba(255,255,255,0.03)"; 
+            ctx.lineWidth = 1 / camera.zoom; 
+            const step = GRID_SIZE;
+            
+            const startX = Math.floor(viewRect.left / step) * step;
+            const endX = Math.ceil(viewRect.right / step) * step;
+            const startY = Math.floor(viewRect.top / step) * step;
+            const endY = Math.ceil(viewRect.bottom / step) * step;
+
+            for (let x = startX; x <= endX; x += step) {
+                if (x >=0 && x <= WORLD_WIDTH) { 
+                    ctx.beginPath();
+                    ctx.moveTo(x, Math.max(0, viewRect.top)); // Clamp to world/view bounds
+                    ctx.lineTo(x, Math.min(WORLD_HEIGHT, viewRect.bottom));
+                    ctx.stroke();
+                }
+            }
+            for (let y = startY; y <= endY; y += step) {
+                 if (y >=0 && y <= WORLD_HEIGHT) { 
+                    ctx.beginPath();
+                    ctx.moveTo(Math.max(0, viewRect.left), y); // Clamp to world/view bounds
+                    ctx.lineTo(Math.min(WORLD_WIDTH, viewRect.right), y);
+                    ctx.stroke();
+                }
+            }
+        }
+        
+        function drawWorldBoundaries(viewRect) { // Added viewRect for culling
+             // Only draw boundaries if they are visible
+            if (viewRect.left <= WORLD_WIDTH && viewRect.right >= 0 && viewRect.top <= WORLD_HEIGHT && viewRect.bottom >= 0) {
+                ctx.strokeStyle = 'rgba(255,80,80,0.6)'; 
+                ctx.lineWidth = Math.max(5, 15 / camera.zoom); 
+                
+                // Draw only visible segments of the boundary rectangle
+                ctx.beginPath();
+                // Top boundary
+                if (viewRect.top < 0 && 0 < viewRect.bottom) ctx.rect(Math.max(0, viewRect.left), 0, Math.min(WORLD_WIDTH, viewRect.right) - Math.max(0, viewRect.left), ctx.lineWidth);
+                // Bottom boundary
+                if (viewRect.top < WORLD_HEIGHT && WORLD_HEIGHT < viewRect.bottom) ctx.rect(Math.max(0, viewRect.left), WORLD_HEIGHT - ctx.lineWidth, Math.min(WORLD_WIDTH, viewRect.right) - Math.max(0, viewRect.left), ctx.lineWidth);
+                // Left boundary
+                if (viewRect.left < 0 && 0 < viewRect.right) ctx.rect(0, Math.max(0, viewRect.top), ctx.lineWidth, Math.min(WORLD_HEIGHT, viewRect.bottom) - Math.max(0, viewRect.top));
+                // Right boundary
+                if (viewRect.left < WORLD_WIDTH && WORLD_WIDTH < viewRect.right) ctx.rect(WORLD_WIDTH - ctx.lineWidth, Math.max(0, viewRect.top), ctx.lineWidth, Math.min(WORLD_HEIGHT, viewRect.bottom) - Math.max(0, viewRect.top));
+                ctx.stroke(); // strokeRect draws all sides, this is more complex but culls
+            }
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height); 
+            ctx.save(); 
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.scale(camera.zoom, camera.zoom);
+            ctx.translate(-camera.x, -camera.y);
+
+            // Calculate visible world rectangle for culling
+            const viewRect = {
+                left: camera.x - (canvas.width / 2 / camera.zoom) - GRID_SIZE, // Add margin for objects partially in view
+                top: camera.y - (canvas.height / 2 / camera.zoom) - GRID_SIZE,
+                right: camera.x + (canvas.width / 2 / camera.zoom) + GRID_SIZE,
+                bottom: camera.y + (canvas.height / 2 / camera.zoom) + GRID_SIZE
+            };
+
+            drawGrid(viewRect);
+            foodArray.forEach(food => food.draw(ctx, viewRect));
+            aiSnakes.forEach(ai => { if(ai.isAlive) ai.draw(ctx, camera, viewRect);});
+            if (playerSnake && playerSnake.isAlive) playerSnake.draw(ctx, camera, viewRect);
+            drawWorldBoundaries(viewRect);
+
+            ctx.restore(); 
+        }
+
+        function updateHUD() {
+            if (playerSnake) { 
+                scoreDisplay.textContent = playerSnake.score;
+                lengthDisplay.textContent = playerSnake.segments.length;
+            } else { 
+                scoreDisplay.textContent = 0;
+                lengthDisplay.textContent = 0;
+            }
+            fpsDisplay.textContent = fps;
+        }
+
+        function updateLeaderboard(snakes) {
+            leaderboardList.innerHTML = ''; 
+            if (!snakes || snakes.length === 0) return;
+
+            const sortedSnakes = [...snakes].sort((a, b) => b.score - a.score);
+
+            for (let i = 0; i < Math.min(5, sortedSnakes.length); i++) {
+                const snake = sortedSnakes[i];
+                const listItem = document.createElement('li');
+                
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = `${i + 1}. ${snake.name}`; 
+                
+                const scoreSpan = document.createElement('span');
+                scoreSpan.textContent = snake.score;
+
+                listItem.appendChild(nameSpan);
+                listItem.appendChild(scoreSpan);
+
+                if (snake.isPlayer) {
+                    listItem.classList.add('player-entry'); 
+                }
+                leaderboardList.appendChild(listItem);
+            }
+        }
+        
+        function gameOver() {
+            gameState = 'gameOver'; 
+            if (animationFrameId) { 
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            isBoosting = false; 
+
+            if (playerSnake) {
+                finalScoreDisplay.textContent = playerSnake.score;
+                if (playerSnake.score > highScore) {
+                    highScore = playerSnake.score;
+                    localStorage.setItem('slitherOfflineHighScoreV5', highScore); 
+                }
+            } else {
+                finalScoreDisplay.textContent = "0";
+            }
+            updateHighScoreDisplays();
+
+            deathScreen.style.display = 'flex';
+            hud.style.display = 'none';
+            customCursor.style.display = 'none';
+            customCursor.classList.remove('boosting');
+            leaderboardDiv.style.display = 'none'; 
+            gameMusicButton.style.display = 'none'; 
+            menuMusicButton.style.display = 'flex'; 
+
+            if (isMusicPlaying && !backgroundMusic.paused) { // Keep music playing if it was, but it usually pauses on game over
+                 // backgroundMusic.pause(); // Let it pause naturally or decide based on preference
+            }
+            updateMusicButtonIcons(); 
+        }
+
+        function showStartMenu() {
+            gameState = 'menu'; 
+            if (animationFrameId) { 
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            
+            startMenu.style.display = 'flex';
+            deathScreen.style.display = 'none';
+            hud.style.display = 'none';
+            customCursor.style.display = 'none';
+            customCursor.classList.remove('boosting');
+            leaderboardDiv.style.display = 'none';
+            gameMusicButton.style.display = 'none';
+            menuMusicButton.style.display = 'flex';
+
+            isBoosting = false; 
+            
+            if (isMusicPlaying && backgroundMusic.paused) { // If returning to menu and music was on, resume it
+                 backgroundMusic.play().catch(e => console.warn("Lỗi phát nhạc khi quay lại menu:", e));
+            } else if (!isMusicPlaying && !backgroundMusic.paused) { // If music was off but somehow playing, pause
+                backgroundMusic.pause();
+            }
+            updateMusicButtonIcons(); 
+        }
+
+        function gameLoop(timestamp) {
+            if (gameState !== 'playing') {
+                return;
+            }
+            animationFrameId = requestAnimationFrame(gameLoop); 
+                                                     
+            const deltaTime = Math.min(0.1, (timestamp - lastFrameTime) / 1000); 
+            lastFrameTime = timestamp;
+            fps = deltaTime > 0 ? Math.round(1 / deltaTime) : 0;
+
+            update(deltaTime); 
+            draw(); 
+        }
+        
+        function updateHighScoreDisplays() {
+            highScoreDisplay.textContent = highScore;
+            deathHighScoreDisplay.textContent = highScore;
+        }
+
+        initGame();
+
+    </script>
+</body>
+</html>
